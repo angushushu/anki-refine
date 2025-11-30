@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { CardInput } from './components/CardInput';
 import { AnalysisResult } from './components/AnalysisResult';
-import { analyzeAnkiCard } from './services/geminiService';
-import { AnalysisResult as AnalysisResultType, LoadingState, Language } from './types';
+import { SettingsModal } from './components/SettingsModal';
+import { analyzeAnkiCard } from './services/llmService';
+import { AnalysisResult as AnalysisResultType, LoadingState, Language, AppSettings } from './types';
 
 function App() {
   const [front, setFront] = useState('');
@@ -11,6 +12,15 @@ function App() {
   const [result, setResult] = useState<AnalysisResultType | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   const [error, setError] = useState<string | null>(null);
+  
+  // Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<AppSettings>({
+    provider: 'Gemini',
+    apiKey: '',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o'
+  });
 
   const handleAnalyze = async () => {
     setLoadingState(LoadingState.THINKING);
@@ -18,12 +28,12 @@ function App() {
     setResult(null);
 
     try {
-      const data = await analyzeAnkiCard(front, back, language);
+      const data = await analyzeAnkiCard(front, back, language, settings);
       setResult(data);
       setLoadingState(LoadingState.SUCCESS);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("Unable to refine card. Please check your connection or try again.");
+      setError(err.message || "Unable to refine card. Please check your connection or settings.");
       setLoadingState(LoadingState.ERROR);
     }
   };
@@ -33,17 +43,29 @@ function App() {
       <div className="max-w-[1100px] mx-auto px-6 py-12 md:py-20">
         
         {/* Header */}
-        <header className="mb-16 flex flex-col md:flex-row md:items-baseline justify-between border-b border-zinc-200 pb-6">
+        <header className="mb-16 flex flex-col md:flex-row md:items-baseline justify-between border-b border-zinc-200 pb-6 relative">
           <div>
             <h1 className="text-3xl font-light tracking-tight text-zinc-900">
               Anki <span className="font-semibold">Refine</span>
             </h1>
             <p className="mt-2 text-zinc-500 text-sm">Intelligent flashcard optimization</p>
           </div>
-          <div className="hidden md:block">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
-              Powered by Gemini 3.0 Pro
-            </span>
+          
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
+            {/* Settings Button */}
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-all"
+              title="Settings"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+            
+            <div className="hidden md:block">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                Powered by {settings.provider}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -71,6 +93,7 @@ function App() {
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                  </svg>
                  <p className="text-sm font-medium">Enter your card details to begin refinement</p>
+                 <p className="text-xs text-zinc-400 mt-2">Using {settings.provider}</p>
                </div>
              )}
 
@@ -80,7 +103,9 @@ function App() {
                     <div className="absolute inset-0 border-t-2 border-zinc-900 rounded-full animate-spin"></div>
                     <div className="absolute inset-2 border-t-2 border-zinc-400 rounded-full animate-spin direction-reverse"></div>
                   </div>
-                  <p className="text-zinc-600 font-medium animate-pulse">Analyzing and refining...</p>
+                  <p className="text-zinc-600 font-medium animate-pulse">
+                    {settings.provider === 'Gemini' ? 'Reasoning...' : 'Analyzing...'}
+                  </p>
                   <p className="text-zinc-400 text-xs mt-2">Applying learning principles</p>
                 </div>
              )}
@@ -104,6 +129,13 @@ function App() {
           </div>
         </main>
       </div>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSave={setSettings}
+      />
     </div>
   );
 }

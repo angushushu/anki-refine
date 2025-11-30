@@ -23,3 +23,12 @@ export enum LoadingState {
 }
 
 export type Language = 'English' | 'Simplified Chinese' | 'Traditional Chinese' | 'Japanese' | 'Korean' | 'Spanish' | 'French' | 'German';
+
+export type LLMProvider = 'Gemini' | 'OpenAI';
+
+export interface AppSettings {
+  provider: LLMProvider;
+  apiKey: string; // User provided key. If empty for Gemini, use process.env.API_KEY
+  baseUrl?: string; // For OpenAI compatible providers (e.g. OpenRouter)
+  model?: string;   // Model name (e.g. gpt-4o, deepseek-r1)
+}

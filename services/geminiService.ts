@@ -1,13 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AnalysisResult, Language } from "../types";
 
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  console.error("API_KEY is not set in the environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-to-prevent-crash' });
+const defaultApiKey = process.env.API_KEY;
 
 const analysisSchema: Schema = {
   type: Type.OBJECT,
@@ -37,10 +31,15 @@ const analysisSchema: Schema = {
   required: ["explanation", "critique", "suggestions"]
 };
 
-export const analyzeAnkiCard = async (front: string, back: string, language: Language): Promise<AnalysisResult> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please configure your environment.");
+export const analyzeWithGemini = async (front: string, back: string, language: Language, userApiKey?: string): Promise<AnalysisResult> => {
+  const keyToUse = userApiKey || defaultApiKey;
+
+  if (!keyToUse) {
+    throw new Error("API Key is missing. Please configure your environment or settings.");
   }
+
+  // Initialize a new client per request to ensure the correct key is used
+  const ai = new GoogleGenAI({ apiKey: keyToUse });
 
   const prompt = `
     I am studying using Anki flashcards. I want you to act as an expert in learning science, specifically focused on Spaced Repetition and the Minimum Information Principle (SuperMemo 20 rules).
@@ -83,7 +82,7 @@ export const analyzeAnkiCard = async (front: string, back: string, language: Lan
 
     return JSON.parse(text) as AnalysisResult;
   } catch (error) {
-    console.error("Error analyzing card:", error);
+    console.error("Error analyzing card with Gemini:", error);
     throw error;
   }
 };
