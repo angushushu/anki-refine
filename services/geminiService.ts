@@ -64,9 +64,12 @@ export const analyzeWithGemini = async (front: string, back: string, language: L
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3.1-pro-preview",
       contents: prompt,
       config: {
+        thinkingConfig: {
+          thinkingBudget: 32768, 
+        },
         responseMimeType: "application/json",
         responseSchema: analysisSchema,
       }
